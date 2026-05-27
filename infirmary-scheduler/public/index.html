@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UPV Infirmary Scheduler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-block">
+        <span class="logo-icon">⚕</span>
+        <div>
+          <span class="logo-title">UPV Infirmary</span>
+          <span class="logo-sub">Scheduler System</span>
+        </div>
+      </div>
+      <span class="header-algo-badge">Greedy Interval Scheduling · O(n log n)</span>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="app-grid">
+
+    <!-- LEFT PANEL: Configuration -->
+    <section class="panel panel--config" id="configPanel">
+      <div class="panel-label">01 — Configuration</div>
+      <h2 class="panel-title">Upload &amp; Settings</h2>
+
+      <!-- File Drop Zone -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📋</div>
+        <p class="dropzone-text">Drop your <strong>.xlsx</strong> student schedule here</p>
+        <p class="dropzone-sub">or click to browse</p>
+        <input type="file" id="fileInput" accept=".xlsx" hidden />
+        <div class="file-chip" id="fileChip" hidden>
+          <span class="file-chip-icon">✓</span>
+          <span id="fileChipName"></span>
+          <button class="file-chip-remove" id="removeFile" title="Remove file">×</button>
+        </div>
+      </div>
+
+      <!-- Infirmary Hours -->
+      <div class="form-section">
+        <div class="form-section-title">Infirmary Hours</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="startTime">Open</label>
+            <input type="time" id="startTime" value="08:00" />
+          </div>
+          <div class="form-divider">→</div>
+          <div class="form-field">
+            <label for="endTime">Close</label>
+            <input type="time" id="endTime" value="17:00" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Appointment Settings -->
+      <div class="form-section">
+        <div class="form-section-title">Appointment Settings</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="slotDuration">Slot Duration</label>
+            <div class="input-unit">
+              <input type="number" id="slotDuration" value="30" min="5" max="480" />
+              <span class="unit">min</span>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="dailyCapacity">Daily Cap <span class="label-opt">(optional)</span></label>
+            <div class="input-unit">
+              <input type="number" id="dailyCapacity" placeholder="—" min="1" />
+              <span class="unit">pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Constraint Note -->
+      <div class="constraint-note">
+        <span class="constraint-icon">⚡</span>
+        Students with free intervals &lt; 2 hours are automatically excluded per safety policy.
+      </div>
+
+      <!-- Run Button -->
+      <button class="btn-run" id="btnOptimize" disabled>
+        <span class="btn-run-text">Optimize Schedule</span>
+        <span class="btn-run-icon">→</span>
+      </button>
+
+      <!-- Template Download -->
+      <button class="btn-template" id="btnTemplate">
+        ↓ Download Sample Excel Template
+      </button>
+    </section>
+
+    <!-- RIGHT PANEL: Results -->
+    <section class="panel panel--results" id="resultsPanel">
+      <div class="panel-label">02 — Results</div>
+      <h2 class="panel-title">Schedule Output</h2>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🗓</div>
+        <p>Upload a student file and configure infirmary hours to generate the optimized schedule.</p>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" id="loadingState" hidden>
+        <div class="spinner"></div>
+        <p>Running greedy algorithm…</p>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="statsBar" hidden>
+        <div class="stat-card">
+          <span class="stat-num" id="statTotal">0</span>
+          <span class="stat-label">Total Students</span>
+        </div>
+        <div class="stat-card stat-card--green">
+          <span class="stat-num" id="statScheduled">0</span>
+          <span class="stat-label">Scheduled</span>
+        </div>
+        <div class="stat-card stat-card--red">
+          <span class="stat-num" id="statUnscheduled">0</span>
+          <span class="stat-label">Conflicts</span>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <span class="stat-num" id="statSlots">0</span>
+          <span class="stat-label">Slots Available</span>
+        </div>
+      </div>
+
+      <!-- Warnings -->
+      <div class="warnings-box" id="warningsBox" hidden>
+        <div class="warnings-title">⚠ Parse Warnings</div>
+        <ul class="warnings-list" id="warningsList"></ul>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar" id="tabBar" hidden>
+        <button class="tab-btn tab-btn--active" id="tabScheduled" data-tab="scheduled">
+          Scheduled <span class="tab-count" id="tabCountScheduled">0</span>
+        </button>
+        <button class="tab-btn" id="tabConflicts" data-tab="conflicts">
+          Conflicts <span class="tab-count tab-count--red" id="tabCountConflicts">0</span>
+        </button>
+      </div>
+
+      <!-- Scheduled Table -->
+      <div class="table-wrap" id="tableScheduled" hidden>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Appointment Time</th>
+              <th>Student Name</th>
+              <th>Student ID</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="scheduledBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Conflicts Table -->
+      <div class="table-wrap" id="tableConflicts" hidden>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student Name</th>
+              <th>Student ID</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="conflictsBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Export Buttons -->
+      <div class="export-bar" id="exportBar" hidden>
+        <button class="btn-export btn-export--primary" id="btnExportSchedule">
+          ↓ Download Master Schedule (.xlsx)
+        </button>
+        <button class="btn-export btn-export--secondary" id="btnExportConflicts">
+          ↓ Download Conflict Report (.xlsx)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <span>UPV Infirmary Scheduling System</span>
+    <span class="footer-sep">·</span>
+    <span>Greedy Interval Scheduling Algorithm</span>
+    <span class="footer-sep">·</span>
+    <span>University of the Philippines Visayas</span>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
