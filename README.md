@@ -114,6 +114,60 @@ ALGORITHM:
 
 ---
 
+## Performance Analysis
+
+### Input Variables
+
+| Symbol | Meaning |
+|---|---|
+| **n** | Number of students |
+| **s** | Number of generated appointment slots = `(endTime − startTime) / slotDuration` |
+| **k** | Number of (student, slot) candidate pairs, where `k ≤ n · s` |
+
+### Time Complexity (per step)
+
+| Step | Operation | Cost |
+|---|---|---|
+| 1 | Generate appointment slots | `O(s)` |
+| 2 | Build candidate (student, slot) pairs | `O(n · s)` |
+| 3 | Sort candidates by earliest finish time | `O(k log k)` |
+| 4 | Greedy assignment loop (Set lookups are `O(1)`) | `O(k)` |
+| 5 | Collect unscheduled students | `O(n)` |
+
+**Overall:** `O(k log k)` — dominated by Step 3 (the sort).
+In the worst case where every student is eligible for every slot, `k = n · s`, giving `O(n · s · log(n · s))`.
+
+### Space Complexity
+
+| Structure | Size |
+|---|---|
+| `candidates` array | `O(k)` |
+| `studentMap` | `O(n)` |
+| `occupiedSlots` set | `O(s)` |
+| `scheduledStudentIds` set | `O(n)` |
+
+**Overall:** `O(n + s + k) = O(k)` worst case.
+
+### Why It's Fast in Practice
+
+For a realistic infirmary day:
+
+| Input | Value |
+|---|---|
+| Students (n) | 500 |
+| Operating window | 8 hours (08:00 – 17:00) |
+| Slot duration | 30 minutes |
+| Slots (s) | 16 |
+| Candidates (k) | ≤ 8,000 |
+
+The sort step performs roughly `8,000 · log₂(8,000) ≈ 104,000` comparisons — well under a millisecond on commodity hardware.
+
+### Justification of the Greedy Strategy
+
+The **Earliest-Finish-Time** rule is the classical optimal strategy for the **Interval Scheduling Maximization** problem (Kleinberg & Tardos, *Algorithm Design*, §4.1). Each time the algorithm commits to a candidate, it picks the one that frees the most remaining time on the timeline, maximizing the room available for subsequent students. With the added one-slot-per-student constraint, the algorithm produces a high-quality matching with the same `O(k log k)` cost — substantially cheaper than the `O(E · √V)` of a true maximum bipartite matching algorithm, at a small cost to optimality in edge cases.
+
+---
+
 ## API Reference
 
 ### `POST /api/schedule`
