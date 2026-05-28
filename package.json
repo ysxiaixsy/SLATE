@@ -1,7 +1,7 @@
 {
-  "name": "upv-infirmary-scheduler",
+  "name": "slate",
   "version": "1.0.0",
-  "description": "UPV Infirmary Scheduler using Greedy Interval Scheduling algorithm",
+  "description": "SLATE — Scheduler for Limited Appointment Time Engine. UPV Infirmary check-up scheduler using a Greedy Interval Scheduling algorithm.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
